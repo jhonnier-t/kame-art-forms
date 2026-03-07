@@ -1,0 +1,32 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Git
+.git/
+.gitignore
+
+# Dev / IDE
+.vscode/
+.idea/
+*.suo
+
+# Docs / misc
+README.md
+*.log
+logs/
+
+# OAuth helper (not needed in production)
+get_refresh_token.py
