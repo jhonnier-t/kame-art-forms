@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
 
+from app.core.logging import get_logger
 from app.models.consent import ConsentFormRequest, ConsentFormResponse
 from app.services.consent_service import consent_service
 
+log = get_logger("routes.consent")
 router = APIRouter()
 
 
@@ -29,9 +31,13 @@ async def consent_status():
     summary="Submit an informed consent form",
 )
 async def submit_consent(form: ConsentFormRequest) -> ConsentFormResponse:
+    log.info("New consent submission — name=%s doc=%s", form.personal_data.full_name, form.personal_data.document_id)
     try:
-        return consent_service.submit(form)
+        result = consent_service.submit(form)
+        log.info("Consent stored — reference=%s", result.reference_number)
+        return result
     except Exception as exc:
+        log.error("Consent submission failed — %s", exc, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al procesar el formulario: {exc}",

@@ -7,7 +7,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 from app.core.config import settings
+from app.core.logging import get_logger
 
+log = get_logger("services.drive")
 _SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
 
@@ -49,7 +51,9 @@ class DriveService:
         existing = service.files().list(q=query, fields="files(id)", pageSize=1).execute()
         files = existing.get("files", [])
         if files:
+            log.debug("Drive folder already exists — %s", name)
             return files[0]["id"]
+        log.debug("Creating Drive folder — %s", name)
         metadata = {
             "name": name,
             "mimeType": "application/vnd.google-apps.folder",

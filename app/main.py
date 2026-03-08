@@ -4,6 +4,9 @@ from fastapi.responses import RedirectResponse
 
 from app.api.routes import consent
 from app.core.config import settings
+from app.core.logging import get_logger
+
+log = get_logger("main")
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -22,6 +25,8 @@ app.add_middleware(
 )
 
 app.include_router(consent.router, prefix="/api/consent", tags=["consent"])
+
+log.info("KameArt API starting — debug=%s", settings.DEBUG)
 
 
 @app.get("/", include_in_schema=False)

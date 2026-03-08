@@ -1,12 +1,12 @@
-import logging
 import smtplib
 import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from app.core.config import settings
+from app.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger("services.email")
 
 
 class EmailService:
@@ -20,6 +20,7 @@ class EmailService:
         Fails silently — a broken SMTP config must never block the main flow.
         """
         if not settings.SMTP_USER or not settings.NOTIFICATION_EMAIL:
+            logger.warning("SMTP not configured — skipping email notification")
             return
 
         try:
@@ -53,13 +54,14 @@ class EmailService:
             msg.attach(MIMEText(html, "html"))
 
             context = ssl.create_default_context()
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
                 server.ehlo()
                 server.starttls(context=context)
                 server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
                 server.send_message(msg)
+            logger.info("Email notification sent — ref=%s to=%s", reference, settings.NOTIFICATION_EMAIL)
         except Exception as exc:
-            logger.error("Email notification failed: %s", exc)
+            logger.error("Email notification failed — ref=%s error=%s", reference, exc)
 
 
 email_service = EmailService()

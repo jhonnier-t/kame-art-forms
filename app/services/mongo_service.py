@@ -1,11 +1,10 @@
-import logging
-
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
 from app.core.config import settings
+from app.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger("services.mongo")
 
 
 class MongoService:
@@ -29,6 +28,7 @@ class MongoService:
         Returns None on failure so the caller can proceed without raising.
         """
         if not settings.MONGO_URI or not settings.MONGO_DB_NAME:
+            logger.warning("MongoDB not configured — skipping persist")
             return None
         try:
             collection = self._get_collection()

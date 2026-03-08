@@ -4,11 +4,14 @@ import uuid
 from datetime import datetime
 
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.models.consent import ConsentFormRequest, ConsentFormResponse
 from app.services.drive_service import drive_service
 from app.services.pdf_service import pdf_service
 from app.services.email_service import email_service
 from app.services.mongo_service import mongo_service
+
+log = get_logger("services.consent")
 
 
 def _generate_reference() -> str:
@@ -36,15 +39,18 @@ class ConsentService:
         folder_name = f"{patient_name}_{document_id}"
 
         # 1. Generate PDF first — if this fails nothing is written to Drive
+        log.debug("Generating PDF — ref=%s", reference)
         pdf_bytes = pdf_service.generate(form, reference, submitted_at)
 
         # 2. Create a subfolder for this person inside the root Drive folder
+        log.debug("Creating Drive folder — %s", folder_name)
         patient_folder_id = drive_service.create_folder(
             folder_name, settings.GOOGLE_DRIVE_FOLDER_ID
         )
 
         # 3. Upload digital signature image into the subfolder
         sig_filename = f"{folder_name}_firma_{timestamp}.png"
+        log.debug("Uploading signature — %s", sig_filename)
         signature_file_id = drive_service.upload_signature_image(
             form.signature_image,
             sig_filename,
@@ -53,6 +59,7 @@ class ConsentService:
 
         # 4. Upload PDF into the subfolder
         pdf_filename = f"{folder_name}_consentimiento_{timestamp}.pdf"
+        log.debug("Uploading PDF — %s", pdf_filename)
         drive_service.upload_pdf(pdf_bytes, pdf_filename, patient_folder_id)
 
         # 5. Build the consent record and persist to MongoDB (fails silently)
@@ -63,7 +70,11 @@ class ConsentService:
             "consent_data": form.consent_data.model_dump(mode="json"),
             "signature_drive_file_id": signature_file_id,
         }
-        mongo_service.save_consent(consent_record)
+        mongo_id = mongo_service.save_consent(consent_record)
+        if mongo_id:
+            log.debug("MongoDB record saved — id=%s", mongo_id)
+        else:
+            log.warning("MongoDB save skipped or failed — ref=%s", reference)
 
         # 6. Send email notification to the studio (fails silently)
         email_service.send_consent_notification(
