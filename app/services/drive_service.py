@@ -1,6 +1,5 @@
 import base64
 import io
-import json
 
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
@@ -71,10 +70,9 @@ class DriveService:
         image_bytes = base64.b64decode(raw)
         return self._upload_bytes(image_bytes, filename, "image/png", folder_id)
 
-    def upload_json(self, data: dict, filename: str, folder_id: str) -> str:
-        """Serialize a dictionary to JSON and upload it to Drive."""
-        json_bytes = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
-        return self._upload_bytes(json_bytes, filename, "application/json", folder_id)
+    def upload_pdf(self, pdf_bytes: bytes, filename: str, folder_id: str) -> str:
+        """Upload a PDF file to Drive."""
+        return self._upload_bytes(pdf_bytes, filename, "application/pdf", folder_id)
 
 
 # Module-level singleton — reuses the authenticated Drive service across requests

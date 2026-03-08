@@ -17,6 +17,17 @@ class Settings(BaseSettings):
     GOOGLE_REFRESH_TOKEN: str = ""
     GOOGLE_DRIVE_FOLDER_ID: str = ""
 
+    # SMTP — email notifications (Gmail recommended)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""  # Gmail App Password
+    NOTIFICATION_EMAIL: str = ""  # Studio email to receive notifications
+
+    # MongoDB Atlas
+    MONGO_URI: str = ""
+    MONGO_DB_NAME: str = ""
+
     model_config = {"env_file": str(_ENV_FILE)}
 
 

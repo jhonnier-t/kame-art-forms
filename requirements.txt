@@ -9,3 +9,5 @@ google-auth==2.28.0
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.0
 python-multipart==0.0.20
+fpdf2==2.8.3
+pymongo[srv]==4.10.1

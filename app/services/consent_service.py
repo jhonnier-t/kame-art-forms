@@ -6,6 +6,9 @@ from datetime import datetime
 from app.core.config import settings
 from app.models.consent import ConsentFormRequest, ConsentFormResponse
 from app.services.drive_service import drive_service
+from app.services.pdf_service import pdf_service
+from app.services.email_service import email_service
+from app.services.mongo_service import mongo_service
 
 
 def _generate_reference() -> str:
@@ -24,12 +27,12 @@ class ConsentService:
 
     def submit(self, form: ConsentFormRequest) -> ConsentFormResponse:
         reference = _generate_reference()
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        now = datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        submitted_at = now.isoformat()
 
         patient_name = _safe_name(form.personal_data.full_name)
         document_id = form.personal_data.document_id
-
-        # Folder name: NombreCompleto_Cedula  (e.g. Juan_Garcia_Lopez_12345678)
         folder_name = f"{patient_name}_{document_id}"
 
         # 1. Create a subfolder for this person inside the root Drive folder
@@ -45,19 +48,28 @@ class ConsentService:
             patient_folder_id,
         )
 
-        # 3. Build the consent record and upload it as JSON into the subfolder
+        # 3. Generate PDF and upload it to Drive (replaces JSON)
+        pdf_bytes = pdf_service.generate(form, reference, submitted_at)
+        pdf_filename = f"{folder_name}_consentimiento_{timestamp}.pdf"
+        drive_service.upload_pdf(pdf_bytes, pdf_filename, patient_folder_id)
+
+        # 4. Build the consent record and persist to MongoDB (fails silently)
         consent_record = {
             "reference_number": reference,
-            "submitted_at": datetime.now().isoformat(),
+            "submitted_at": submitted_at,
             "personal_data": form.personal_data.model_dump(mode="json"),
             "consent_data": form.consent_data.model_dump(mode="json"),
             "signature_drive_file_id": signature_file_id,
         }
-        json_filename = f"{folder_name}_consentimiento_{timestamp}.json"
-        drive_service.upload_json(
-            consent_record,
-            json_filename,
-            patient_folder_id,
+        mongo_service.save_consent(consent_record)
+
+        # 5. Send email notification to the studio (fails silently)
+        email_service.send_consent_notification(
+            full_name=form.personal_data.full_name,
+            document_id=document_id,
+            client_email=form.personal_data.email,
+            reference=reference,
+            submitted_at=submitted_at,
         )
 
         return ConsentFormResponse(

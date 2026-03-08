@@ -16,6 +16,7 @@ __pycache__/
 
 # Git
 .git/
+.github/
 .gitignore
 
 # Dev / IDE
