@@ -35,12 +35,15 @@ class ConsentService:
         document_id = form.personal_data.document_id
         folder_name = f"{patient_name}_{document_id}"
 
-        # 1. Create a subfolder for this person inside the root Drive folder
+        # 1. Generate PDF first — if this fails nothing is written to Drive
+        pdf_bytes = pdf_service.generate(form, reference, submitted_at)
+
+        # 2. Create a subfolder for this person inside the root Drive folder
         patient_folder_id = drive_service.create_folder(
             folder_name, settings.GOOGLE_DRIVE_FOLDER_ID
         )
 
-        # 2. Upload digital signature image into the subfolder
+        # 3. Upload digital signature image into the subfolder
         sig_filename = f"{folder_name}_firma_{timestamp}.png"
         signature_file_id = drive_service.upload_signature_image(
             form.signature_image,
@@ -48,12 +51,11 @@ class ConsentService:
             patient_folder_id,
         )
 
-        # 3. Generate PDF and upload it to Drive (replaces JSON)
-        pdf_bytes = pdf_service.generate(form, reference, submitted_at)
+        # 4. Upload PDF into the subfolder
         pdf_filename = f"{folder_name}_consentimiento_{timestamp}.pdf"
         drive_service.upload_pdf(pdf_bytes, pdf_filename, patient_folder_id)
 
-        # 4. Build the consent record and persist to MongoDB (fails silently)
+        # 5. Build the consent record and persist to MongoDB (fails silently)
         consent_record = {
             "reference_number": reference,
             "submitted_at": submitted_at,
@@ -63,7 +65,7 @@ class ConsentService:
         }
         mongo_service.save_consent(consent_record)
 
-        # 5. Send email notification to the studio (fails silently)
+        # 6. Send email notification to the studio (fails silently)
         email_service.send_consent_notification(
             full_name=form.personal_data.full_name,
             document_id=document_id,

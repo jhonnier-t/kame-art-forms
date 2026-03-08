@@ -38,8 +38,18 @@ class DriveService:
         return self._service
 
     def create_folder(self, name: str, parent_id: str) -> str:
-        """Create a subfolder inside parent_id and return its ID."""
+        """Return the ID of an existing subfolder with this name, or create it."""
         service = self._get_service()
+        query = (
+            f"name='{name}' "
+            f"and '{parent_id}' in parents "
+            f"and mimeType='application/vnd.google-apps.folder' "
+            f"and trashed=false"
+        )
+        existing = service.files().list(q=query, fields="files(id)", pageSize=1).execute()
+        files = existing.get("files", [])
+        if files:
+            return files[0]["id"]
         metadata = {
             "name": name,
             "mimeType": "application/vnd.google-apps.folder",

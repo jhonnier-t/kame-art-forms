@@ -9,7 +9,7 @@ from app.models.consent import ConsentFormRequest
 class _ConsentPdf(FPDF):
     def header(self):
         self.set_font("Helvetica", "B", 14)
-        self.cell(0, 10, "KameArt \u2014 Consentimiento Informado", align="C", new_x="LMARGIN", new_y="NEXT")
+        self.cell(0, 10, "KameArt - Consentimiento Informado", align="C", new_x="LMARGIN", new_y="NEXT")
         self.set_draw_color(30, 30, 30)
         self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
         self.ln(3)
