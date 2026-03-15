@@ -11,9 +11,10 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
 
-    # Google Drive — Service Account credentials (required)
-    GOOGLE_SERVICE_ACCOUNT_JSON: str = ""
-    GOOGLE_SERVICE_ACCOUNT_FILE: str = ""
+    # Google Drive — OAuth2 credentials (personal Google account)
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REFRESH_TOKEN: str = ""
     GOOGLE_DRIVE_FOLDER_ID: str = ""
 
     # SMTP — email notifications (Gmail recommended)

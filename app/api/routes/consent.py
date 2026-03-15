@@ -26,7 +26,6 @@ async def consent_status():
 
 @router.post(
     "/submit",
-    response_model=ConsentFormResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Submit an informed consent form",
 )
@@ -36,6 +35,12 @@ async def submit_consent(form: ConsentFormRequest) -> ConsentFormResponse:
         result = consent_service.submit(form)
         log.info("Consent stored — reference=%s", result.reference_number)
         return result
+    except ValueError as exc:
+        log.warning("Consent submission configuration error — %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
     except Exception as exc:
         log.error("Consent submission failed — %s", exc, exc_info=True)
         raise HTTPException(

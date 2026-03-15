@@ -36,7 +36,7 @@ backend/
 │   └── main.py               # App FastAPI + CORS + rutas
 ├── .env                      # Secretos (NO subir a git)
 ├── .env.example              # Plantilla de variables
-├── get_refresh_token.py      # Script legado (ya no requerido para Drive)
+├── get_refresh_token.py      # Script para obtener OAuth2 refresh token
 └── requirements.txt
 ```
 
@@ -77,18 +77,32 @@ APP_NAME=KameArt Consent Form API
 DEBUG=True
 CORS_ORIGINS=["http://localhost:5173"]
 
-GOOGLE_SERVICE_ACCOUNT_JSON=
-GOOGLE_SERVICE_ACCOUNT_FILE=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REFRESH_TOKEN=
 GOOGLE_DRIVE_FOLDER_ID=
 ```
 
-### 5. Configurar Service Account
+### 5. Obtener el refresh token de Google (solo una vez)
 
-1. Crea un **Service Account** en Google Cloud y habilita Drive API.
-2. Configura una de estas opciones:
-  - `GOOGLE_SERVICE_ACCOUNT_JSON`: JSON completo en una sola variable (ideal en Railway/Secrets).
-  - `GOOGLE_SERVICE_ACCOUNT_FILE`: ruta local al archivo JSON (ideal en desarrollo local).
-3. Comparte la carpeta de destino (`GOOGLE_DRIVE_FOLDER_ID`) con el email del Service Account como **Editor**.
+```bash
+.venv\Scripts\python.exe get_refresh_token.py
+```
+
+Se abrira el navegador para autorizar con tu cuenta de Google. Al terminar, copia el `GOOGLE_REFRESH_TOKEN` impreso en la terminal y pegalo en `.env`.
+
+> Requisitos previos para el script:
+> - Proyecto en Google Cloud Console con Google Drive API habilitada
+> - Credencial OAuth2 de tipo Aplicacion de escritorio
+> - Tu email agregado como usuario de prueba en la pantalla de consentimiento OAuth (si todavia no esta en Production)
+
+### 5B. Poner OAuth en Production (recomendado)
+
+1. Ve a Google Cloud Console -> APIs y servicios -> Pantalla de consentimiento OAuth.
+2. Completa los datos obligatorios de la app (nombre, email de soporte, desarrollador).
+3. En Publico objetivo, cambia estado de Testing a Production.
+4. Guarda y publica los cambios.
+5. Vuelve a ejecutar `get_refresh_token.py` para generar un token nuevo en modo Production.
 
 ### 6. Levantar el servidor
 
@@ -171,7 +185,9 @@ Por cada formulario enviado se crea:
 3. Seleccionar el repositorio → configurar **Root Directory:** `backend`
 4. En **Variables** agregar:
    ```
-  GOOGLE_SERVICE_ACCOUNT_JSON
+  GOOGLE_CLIENT_ID
+  GOOGLE_CLIENT_SECRET
+  GOOGLE_REFRESH_TOKEN
    GOOGLE_DRIVE_FOLDER_ID
    DEBUG=False
    CORS_ORIGINS=["https://tu-frontend.vercel.app"]
