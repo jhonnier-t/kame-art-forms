@@ -1,8 +1,9 @@
 import base64
 import io
+import json
 
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
+from google.auth.credentials import Credentials as GoogleCredentials
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
@@ -16,24 +17,47 @@ _SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 class DriveService:
     """Handles all interactions with the Google Drive API.
 
-    Uses OAuth2 refresh token for authentication with a personal Google account.
+    Uses Service Account authentication.
     The service is lazily instantiated on first use.
     """
 
     def __init__(self) -> None:
         self._service = None
 
-    def _get_service(self):
-        if self._service is None:
-            credentials = Credentials(
-                token=None,
-                refresh_token=settings.GOOGLE_REFRESH_TOKEN,
-                client_id=settings.GOOGLE_CLIENT_ID,
-                client_secret=settings.GOOGLE_CLIENT_SECRET,
-                token_uri="https://oauth2.googleapis.com/token",
+    def _has_service_account_config(self) -> bool:
+        return bool(
+            settings.GOOGLE_SERVICE_ACCOUNT_JSON.strip()
+            or settings.GOOGLE_SERVICE_ACCOUNT_FILE.strip()
+        )
+
+    def _build_service_account_credentials(self) -> GoogleCredentials:
+        if settings.GOOGLE_SERVICE_ACCOUNT_JSON.strip():
+            info = json.loads(settings.GOOGLE_SERVICE_ACCOUNT_JSON)
+            return service_account.Credentials.from_service_account_info(
+                info,
                 scopes=_SCOPES,
             )
-            credentials.refresh(Request())
+        if settings.GOOGLE_SERVICE_ACCOUNT_FILE.strip():
+            return service_account.Credentials.from_service_account_file(
+                settings.GOOGLE_SERVICE_ACCOUNT_FILE,
+                scopes=_SCOPES,
+            )
+        raise ValueError(
+            "Falta configurar GOOGLE_SERVICE_ACCOUNT_JSON o GOOGLE_SERVICE_ACCOUNT_FILE "
+            "para autenticacion service_account."
+        )
+
+    def _build_credentials(self) -> GoogleCredentials:
+        if not self._has_service_account_config():
+            raise ValueError(
+                "Falta configurar GOOGLE_SERVICE_ACCOUNT_JSON o GOOGLE_SERVICE_ACCOUNT_FILE."
+            )
+        log.info("Google Drive auth mode: service_account")
+        return self._build_service_account_credentials()
+
+    def _get_service(self):
+        if self._service is None:
+            credentials = self._build_credentials()
             self._service = build(
                 "drive", "v3", credentials=credentials, cache_discovery=False
             )
